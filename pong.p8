@@ -10,6 +10,7 @@ function _update60()
 end
 
 function _draw()
+	cls(1)
 	scene.current:draw()
 end
 -->8
@@ -70,6 +71,7 @@ entity=class:extend({
 	
 	extend=function(_ENV,tbl)
 		tbl=class.extend(_ENV,tbl)
+		tbl.pool = {}
 		return tbl
 	end,
 	
@@ -113,9 +115,8 @@ entity=class:extend({
 
 paddle=entity:extend({
 	up,down,serve,
-	x=0,
 	y=53,
-	w=2,
+	w=10,
 	h=20,
 	dy=2,
 	col=7,
@@ -145,8 +146,6 @@ paddle=entity:extend({
 ball=entity:extend({
 	x=33,
 	y=63,
-	h=4,
-	w=4,
 	dx=1,
 	dy=1,
 	rad=2,
@@ -185,7 +184,30 @@ ball=entity:extend({
 	end,
 	
 	dflx=function(_ENV,other)
-		
+		sfx(0)
+		  local slp = dy / dx
+    local cx, cy
+    if dx == 0 then
+        return false
+    elseif dy == 0 then
+        return true
+    elseif slp > 0 and dx > 0 then
+        cx = other.x - x
+        cy = other.y - y
+        return cx > 0 and cy/cx < slp
+    elseif slp < 0 and dx > 0 then
+        cx = other.x - x
+        cy = other.y + other.h - y
+        return cx > 0 and cy/cx >= slp
+    elseif slp > 0 and dx < 0 then
+        cx = other.x + other.w - x
+        cy = other.y + other.h - y
+        return cx < 0 and cy/cx <= slp
+    else
+        cx = other.x + other.w - x
+        cy = other.y - y
+        return cx < 0 and cy/cx >= slp
+    end
 	end,
 	
 })
@@ -229,12 +251,42 @@ gamescene=scene:extend({
 	update=function(_ENV)
 		entity:each("update")
 		ball:each("detect",p1,function(obj)
-			sfx(0)
+			if obj:dflx(p1) then
+				obj.dx=-obj.dx
+				if obj.x < p1.x+p1.w/2 then
+					obj.x=p1.x-obj.rad
+				else
+					obj.x=p1.x+p1.w+obj.rad
+				end 
+			else
+				obj.dy=-obj.dy
+				if obj.y < p1.y+p1.h/2 then
+					obj.y=p1.y-obj.rad
+				else
+					obj.y=p1.y+p1.h+obj.rad
+				end
+		 end
+		end)
+		ball:each("detect",p2,function(obj)
+			if obj:dflx(p2) then
+				obj.dx=-obj.dx
+				if obj.x < p2.x+p1.w/2 then
+					obj.x=p2.x-obj.rad
+				else
+					obj.x=p2.x+p2.w+obj.rad
+				end 
+			else
+				obj.dy=-obj.dy
+				if obj.y < p2.y+p2.h/2 then
+					obj.y=p2.y-obj.rad
+				else
+					obj.y=p2.y+p2.h+obj.rad
+			 end
+			end
 		end)
 	end,
 	
 	draw=function(_ENV)
-		cls(1)
 		entity:each("draw")
 		print(tostr(p1.y),p1.x-12,p1.y,8)
 		print(tostr(p2.y),p2.x+4,p2.y,8)
